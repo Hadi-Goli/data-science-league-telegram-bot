@@ -17,7 +17,7 @@ def main():
         print("Please set it using: export BOT_TOKEN='your-bot-token'")
         return
 
-    print("Starting Tehran Linux User Group Q&A Bot...")
+    print("Starting DataScience League Bot...")
     
     # Debug: Print proxy settings
     print(f"HTTP_PROXY: {os.getenv('HTTP_PROXY')}")
@@ -35,11 +35,17 @@ def main():
         httpx_kwargs = {"trust_env": trust_env}
         request = HTTPXRequest(http_version="1.1", httpx_kwargs=httpx_kwargs)
 
+        async def post_init(application: Application):
+            from database import db
+            await db.init_db()
+            print("Database initialized successfully.")
+
         app = (
             Application.builder()
             .token(token)
             .request(request)
             .get_updates_request(request)
+            .post_init(post_init)
             .build()
         )
         setup_handlers(app)

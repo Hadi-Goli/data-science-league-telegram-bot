@@ -1,4 +1,7 @@
-python-telegram-bot>=20.7
+python-telegram-bot[job-queue]
 python-dotenv
-sqlalchemy[asyncio]
+sqlalchemy
 asyncpg
+pandas
+scikit-learn
+greenlet
