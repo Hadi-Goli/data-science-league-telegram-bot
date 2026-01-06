@@ -160,7 +160,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/rank - مشاهده رتبه و رکورد شخصی 📊\n\n"
         "📤 **نحوه ارسال پاسخ:**\n"
         "فایل CSV خود را (با نام دلخواه) در چت آپلود کنید. ربات به صورت خودکار آن را بررسی و نمره دهی می‌کند.\n\n"
-        "👨‍💻 **ادمین:**\n"
+        # "👨‍💻 **ادمین:**@M_hadigoli\n"
         "/admin - ورود به پنل مدیریت (مخصوص ادمین‌ها)"
     )
     await update.message.reply_text(text, parse_mode='Markdown')
