@@ -4,18 +4,12 @@ import numpy as np
 from sklearn.metrics import root_mean_squared_error
 from typing import Tuple, Optional
 
-# Hardcoded Whitelist of Full Names
-WHITELIST = [
-    "Hadi Goli",
-    "Ali Alavi",
-    "Sara Tehrani",
-    "Test Student",
-    "Admin User"
-]
+# Whitelist is now managed in database.py
+from database import db
 
-def check_whitelist(full_name: str) -> bool:
-    """Check if the provided name is in the whitelist."""
-    return full_name.strip() in WHITELIST
+async def check_whitelist(full_name: str) -> bool:
+    """Check if the provided name is in the whitelist (DB)."""
+    return await db.is_whitelisted(full_name.strip())
 
 def calculate_score(student_file_bytes: bytes, solution_path: str = "solution.csv") -> Tuple[Optional[float], Optional[str]]:
     """

@@ -32,6 +32,16 @@ class Submission(Base):
     
     user = relationship("User", back_populates="submissions")
 
+class Config(Base):
+    __tablename__ = 'config'
+    key = Column(String, primary_key=True)
+    value = Column(String)
+
+class AllowedUser(Base):
+    __tablename__ = 'allowed_users'
+    full_name = Column(String, primary_key=True)
+    added_at = Column(DateTime, default=datetime.utcnow)
+
 class Database:
     def __init__(self):
         self.db_url = os.getenv("DATABASE_URL")
@@ -48,6 +58,18 @@ class Database:
     async def init_db(self):
         async with self.engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+            
+        # Seed initial whitelist if empty
+        async with self.SessionLocal() as session:
+            # Check if any AllowedUser exists
+            result = await session.execute(select(AllowedUser))
+            if not result.scalars().first():
+                initial_list = [
+                    "محمد هادی گلی بیدگلی", "شایان گنجی", "سهیل نوحی", "مرضیه معتمدنیا", "پارمیدا هدایتی"
+                ]
+                for name in initial_list:
+                    session.add(AllowedUser(full_name=name))
+                await session.commit()
             
     async def get_session(self) -> AsyncSession:
         return self.SessionLocal()
@@ -66,6 +88,11 @@ class Database:
 
     async def add_submission(self, telegram_id: int, rmse: float, file_name: str):
         async with self.SessionLocal() as session:
+            # Check for freeze
+            config = await session.get(Config, "competition_frozen")
+            if config and config.value == "true":
+                 raise Exception("Competition is currently frozen.")
+
             # Add submission
             new_sub = Submission(user_id=telegram_id, rmse=rmse, file_name=file_name)
             session.add(new_sub)
@@ -92,21 +119,52 @@ class Database:
             
     async def get_user_rank(self, telegram_id: int):
         async with self.SessionLocal() as session:
-            # This is a basic rank query, sufficient for modest datasets
             user = await session.get(User, telegram_id)
             if not user or user.best_rmse == float('inf'):
                 return None
-                
-            # Count how many users have better (lower) RMSE
             query = select(User).where(User.best_rmse < user.best_rmse)
             result = await session.execute(query)
-            better_users = len(result.scalars().all())
-            return better_users + 1
+            return len(result.scalars().all()) + 1
             
     async def get_all_users(self):
         async with self.SessionLocal() as session:
             result = await session.execute(select(User))
             return result.scalars().all()
+
+    # --- Admin Config Methods ---
+    async def set_config(self, key: str, value: str):
+        async with self.SessionLocal() as session:
+            conf = await session.get(Config, key)
+            if not conf:
+                conf = Config(key=key, value=value)
+                session.add(conf)
+            else:
+                conf.value = value
+            await session.commit()
+            
+    async def get_config(self, key: str) -> Optional[str]:
+        async with self.SessionLocal() as session:
+            conf = await session.get(Config, key)
+            return conf.value if conf else None
+
+    # --- Whitelist Methods ---
+    async def is_whitelisted(self, full_name: str) -> bool:
+        async with self.SessionLocal() as session:
+            user = await session.get(AllowedUser, full_name)
+            return user is not None
+            
+    async def add_allowed_user(self, full_name: str):
+        async with self.SessionLocal() as session:
+            if not await session.get(AllowedUser, full_name):
+                session.add(AllowedUser(full_name=full_name))
+                await session.commit()
+
+    async def remove_allowed_user(self, full_name: str):
+        async with self.SessionLocal() as session:
+            user = await session.get(AllowedUser, full_name)
+            if user:
+                await session.delete(user)
+                await session.commit()
 
 # Singleton instance
 db = Database()
