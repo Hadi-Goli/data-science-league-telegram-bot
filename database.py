@@ -61,16 +61,28 @@ class Database:
             
         # Seed initial whitelist if empty
         async with self.SessionLocal() as session:
-            # Check if any AllowedUser exists
-            result = await session.execute(select(AllowedUser))
-            if not result.scalars().first():
-                initial_list = [
+            initial_list = [
                     "محمد هادی گلی بیدگلی", "شایان گنجی", "سهیل نوحی", "مرضیه معتمدنیا", "پارمیدا هدایتی","نگین مهرپرور","معصومه ندرلی","ایلیا هراتی","محمد مهدی ترک تتاری","مهدیه مقیسه","یسنا جعفری","مهشید فعلی","امین صفری","فرزاد شهبازی","ایمان ارباب","باربد قنبری","سبحان ابراهیمی",
                 ]
-                for name in initial_list:
-                    session.add(AllowedUser(full_name=name))
-                await session.commit()
+
+            # بهینه سازی: فقط کسانی را از دیتابیس بگیر که اسمشان در لیست ما هست
+            # این کوئری بسیار سبک است چون محدود به لیست شماست
+            stmt = select(AllowedUser.full_name).where(AllowedUser.full_name.in_(initial_list))
+            result = await session.execute(stmt)
             
+            # لیستی از افرادی که هم در کد هستند و هم در دیتابیس (تکراری‌ها)
+            existing_ones = set(result.scalars().all())
+
+            # اضافه کردن کسانی که در لیست هستند ولی در دیتابیس پیدا نشدند
+            users_to_add = []
+            for name in initial_list:
+                if name not in existing_ones:
+                    users_to_add.append(AllowedUser(full_name=name))
+
+            if users_to_add:
+                session.add_all(users_to_add)
+                await session.commit()
+                print(f"Added {len(users_to_add)} missing users.")    
     async def get_session(self) -> AsyncSession:
         return self.SessionLocal()
         
