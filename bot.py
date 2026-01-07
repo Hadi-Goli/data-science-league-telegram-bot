@@ -67,7 +67,7 @@ async def auth_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
         except Exception as e:
             # Likely IntegrityError if full_name already exists for another ID
-            await update.message.reply_text(f"خطا: ممکن است این نام قبلا ثبت شده باشد. \n{str(e)}")
+            await update.message.reply_text(f"خطا: ممکن است این نام قبلا ثبت شده باشد. ") #\n{str(e)}")
             return AUTH_NAME # Ask again?
             
     else:
@@ -311,7 +311,7 @@ async def auth_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return ConversationHandler.END
             
         except Exception as e:
-            await update.message.reply_text(f"خطا: ممکن است این نام قبلا ثبت شده باشد. \n{str(e)}")
+            await update.message.reply_text(f"خطا: ممکن است این نام قبلا ثبت شده باشد.") # \n{str(e)}")
             return AUTH_NAME
             
     else:
